@@ -1,12 +1,9 @@
 package com.revature.api.controller;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
-
-import org.apache.catalina.connector.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -18,10 +15,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import com.revature.api.domain.Personnel;
 import com.revature.api.domain.PersonnelShort;
+import com.revature.api.exceptions.DataNotFoundException;
+import com.revature.api.exceptions.UnauthorizedException;
 import com.revature.api.service.PersonnelService;
 
 @RestController
-@RequestMapping("/available")
+@RequestMapping("/EmploymentAgencyAPI/available")
 public class PersonnelController {
 	@Autowired
 	PersonnelService personnelService;
@@ -46,17 +45,29 @@ public class PersonnelController {
 	
 	@GetMapping("/{id}")
 	public Personnel getPersonnelDetails(@PathVariable("id") Integer id, @RequestParam("username") String user,
-			@RequestParam("password") String pass) throws IOException {
-		if (user.equals("admin") && pass.equals("admin"))
-			return personnelService.getPersonnelDetails(id);
+			@RequestParam("password") String pass) throws UnauthorizedException, DataNotFoundException {
+		if (user.equals("admin") && pass.equals("admin")){
+			try{
+			Personnel p = personnelService.getPersonnelDetails(id);
+			return p;
+			} catch (Exception e){
+				System.out.println(e.getMessage());
+			}
+			throw new DataNotFoundException();
+		}			
 		else
-			throw new IOException();
+			throw new UnauthorizedException();
 	}
 	
-	@ExceptionHandler(IOException.class)
+	@ExceptionHandler(UnauthorizedException.class)
 	@ResponseStatus(value=HttpStatus.UNAUTHORIZED)
-	public void ioProblem() {
-		response.setStatus(Response.SC_UNAUTHORIZED);
-		//return response.getOutputStream().toString();
+	public String unauthorized() {
+		return HttpStatus.UNAUTHORIZED.toString();
+	}
+	
+	@ExceptionHandler(DataNotFoundException.class)
+	@ResponseStatus(value=HttpStatus.NOT_FOUND)
+	public String dataNotFound() {
+		return HttpStatus.NOT_FOUND.toString();
 	}
 }
